@@ -1,0 +1,16 @@
+[build-system]
+requires = ["flit_core >=3.4,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "frappe_notify_plus"
+authors = [{name = "Notify Plus Contributors"}]
+description = "Per-Notification toast styles and sounds for Frappe Desk"
+requires-python = ">=3.10"
+readme = "README.md"
+dynamic = ["version"]
+license = {file = "LICENSE"}
+dependencies = []
+
+[tool.bench.frappe-dependencies]
+frappe = ">=15.0.0,<17.0.0"

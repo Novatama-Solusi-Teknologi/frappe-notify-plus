@@ -1,0 +1,113 @@
+{
+  "doctype": "DocType",
+  "name": "Notification Style",
+  "module": "Notify Plus",
+  "autoname": "field:style_name",
+  "engine": "InnoDB",
+  "field_order": [
+    "style_name",
+    "enabled",
+    "appearance",
+    "toast_style",
+    "tone",
+    "position",
+    "duration",
+    "sound_section",
+    "sound",
+    "custom_sound",
+    "volume"
+  ],
+  "fields": [
+    {
+      "fieldname": "style_name",
+      "label": "Style Name",
+      "fieldtype": "Data",
+      "reqd": 1,
+      "unique": 1
+    },
+    {
+      "fieldname": "enabled",
+      "label": "Enabled",
+      "fieldtype": "Check",
+      "default": "1"
+    },
+    {
+      "fieldname": "appearance",
+      "label": "Appearance",
+      "fieldtype": "Section Break"
+    },
+    {
+      "fieldname": "toast_style",
+      "label": "Toast Style",
+      "fieldtype": "Select",
+      "options": "Minimal\nAccent\nSolid\nGlass\nBanner",
+      "default": "Accent",
+      "reqd": 1
+    },
+    {
+      "fieldname": "tone",
+      "label": "Tone",
+      "fieldtype": "Select",
+      "options": "Info\nSuccess\nWarning\nDanger",
+      "default": "Info",
+      "reqd": 1
+    },
+    {
+      "fieldname": "position",
+      "label": "Position",
+      "fieldtype": "Select",
+      "options": "Top Right\nTop Left\nBottom Right\nBottom Left",
+      "default": "Top Right",
+      "reqd": 1
+    },
+    {
+      "fieldname": "duration",
+      "label": "Duration (seconds)",
+      "fieldtype": "Int",
+      "default": "7",
+      "description": "0 keeps the toast open until dismissed. Maximum 60 seconds."
+    },
+    {
+      "fieldname": "sound_section",
+      "label": "Sound",
+      "fieldtype": "Section Break"
+    },
+    {
+      "fieldname": "sound",
+      "label": "Sound",
+      "fieldtype": "Select",
+      "options": "None\nChime\nBell\nPulse\nCustom",
+      "default": "Chime",
+      "reqd": 1
+    },
+    {
+      "fieldname": "custom_sound",
+      "label": "Custom Sound",
+      "fieldtype": "Attach",
+      "depends_on": "eval:doc.sound==\"Custom\"",
+      "mandatory_depends_on": "eval:doc.sound==\"Custom\"",
+      "description": "Upload a public MP3, WAV, or OGG file (maximum 2 MB). Public audio is accessible to anyone with its URL."
+    },
+    {
+      "fieldname": "volume",
+      "label": "Volume (%)",
+      "fieldtype": "Int",
+      "default": "60"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1,
+      "export": 1,
+      "print": 1,
+      "share": 1
+    }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "track_changes": 1
+}
