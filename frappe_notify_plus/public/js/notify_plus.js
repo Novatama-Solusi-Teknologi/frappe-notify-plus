@@ -3,9 +3,21 @@
     if (frappe.notify_plus) return;
     const seen = new Set();
     let audioContext, unlocked = false, activeAudio;
-    const storageKey = `notify-plus-muted:${frappe.session.user}`;
-    const readMute = () => { try { return localStorage.getItem(storageKey) === "1"; } catch { return false; } };
-    let muted = readMute();
+    const storageKey = `notify-plus-sound:${frappe.session.user}`;
+    const legacyKey = `notify-plus-muted:${frappe.session.user}`;
+    const readPreference = () => {
+        try {
+            const saved = localStorage.getItem(storageKey);
+            if (["enabled", "muted", "disabled"].includes(saved)) return saved;
+            const legacy = localStorage.getItem(legacyKey);
+            return legacy === "1" ? "muted" : legacy === "0" ? "enabled" : "disabled";
+        } catch { return "disabled"; }
+    };
+    let preference = readPreference();
+    const savePreference = value => {
+        preference = value;
+        try { localStorage.setItem(storageKey, value); } catch { /* Storage may be disabled. */ }
+    };
     const text = (tag, value, className) => {
         const element = document.createElement(tag);
         element.textContent = value || "";
@@ -18,37 +30,53 @@
     const control = text("button", "", "np-audio-control");
     control.type = "button";
     const updateControl = () => {
-        control.textContent = muted ? __("Unmute notifications") : unlocked ? __("Mute notifications") : __("Enable sound");
+        control.textContent = preference === "muted" ? __("Unmute notifications") : preference === "enabled" ? __("Mute notifications") : __("Enable sound");
         control.title = __("Notify Plus sound settings for this browser");
     };
-    async function unlock() {
+    function unlock() {
+        if (preference !== "enabled") return;
         try {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioContext ||= new AudioContext();
-            await audioContext.resume();
+            // Autoplay permission is transient; it must never overwrite user preference.
+            // Do not await resume: browsers can keep its promise pending until a gesture.
             unlocked = audioContext.state === "running";
+            void audioContext.resume().then(() => {
+                unlocked = audioContext.state === "running";
+                if (preference !== "enabled") stopAudio();
+            }).catch(() => { unlocked = false; });
         } catch { unlocked = false; }
-        updateControl();
     }
-    control.onclick = async () => {
-        if (!unlocked && !muted) await unlock();
-        else {
-            muted = !muted;
-            try { localStorage.setItem(storageKey, muted ? "1" : "0"); } catch { /* Storage may be disabled. */ }
-            if (!muted) await unlock();
-            else {
-                activeAudio?.pause();
-                if (audioContext?.state === "running") await audioContext.suspend();
-            }
-        }
+    function stopAudio() {
+        activeAudio?.pause();
+        unlocked = false;
+        if (audioContext?.state === "running") void audioContext.suspend().catch(() => {});
+    }
+    control.onclick = () => {
+        savePreference(preference === "enabled" ? "muted" : "enabled");
+        if (preference === "enabled") unlock();
+        else stopAudio();
         updateControl();
     };
+    // Restore audio automatically on ordinary Desk interaction if autoplay is blocked.
+    for (const event of ["pointerdown", "keydown"]) {
+        document.addEventListener(event, () => {
+            if (preference === "enabled" && (!unlocked || audioContext?.state !== "running")) unlock();
+        }, {capture: true});
+    }
+    window.addEventListener("storage", event => {
+        if (event.key !== storageKey && event.key !== null) return;
+        preference = readPreference();
+        if (preference === "enabled") unlock();
+        else stopAudio();
+        updateControl();
+    });
     function mountControl() {
         if (!control.isConnected) document.body.append(control);
         updateControl();
     }
     async function play(data) {
-        if (muted || !unlocked || data.sound === "None") return;
+        if (preference !== "enabled" || !unlocked || data.sound === "None") return;
         const volume = number(data.volume, 60, 100) / 100;
         if (data.sound === "Custom") {
             try {
@@ -108,11 +136,22 @@
         let timer;
         const dismiss = () => { clearTimeout(timer); toast.remove(); };
         toast.npDismiss = dismiss;
-        if (!preview && data.id) {
-            const open = text("button", __("Open notification"), "np-open");
+        const hasRecord = typeof data.document_type === "string" && data.document_type.trim()
+            && typeof data.document_name === "string" && data.document_name.trim();
+        if (!preview && (hasRecord || data.id)) {
+            const navigate = () => {
+                if (hasRecord) frappe.set_route("Form", data.document_type, data.document_name);
+                else frappe.set_route("Form", "Notification Log", data.id);
+                dismiss();
+            };
+            const open = text("button", hasRecord ? __("Open document") : __("Open notification"), "np-open");
             open.type = "button";
-            open.onclick = () => { frappe.set_route("Form", "Notification Log", data.id); dismiss(); };
+            open.onclick = navigate;
             body.append(open);
+            toast.classList.add("np-clickable");
+            toast.onclick = event => {
+                if (!event.target.closest("button")) navigate();
+            };
         }
         const close = text("button", "×", "np-close");
         close.type = "button";
@@ -134,10 +173,14 @@
     }
     frappe.notify_plus = {
         show,
-        preview: async data => { mountControl(); await unlock(); show(data, true); }
+        preview: data => {
+            if (preference === "disabled") savePreference("enabled");
+            mountControl(); unlock(); show(data, true);
+        }
     };
     $(function () {
         mountControl();
+        if (preference === "enabled") unlock();
         frappe.realtime.on("notify_plus", data => show(data));
     });
 })();

@@ -1,6 +1,6 @@
 # Notify Plus for Frappe / ERPNext
 
-App Frappe untuk mengatur toast dan suara **per Notification**. Target kompatibilitas: Frappe v15/v16; ERPNext opsional. Versi 0.1.0. Pengujian pada site Frappe nyata masih diperlukan sebelum produksi.
+App Frappe untuk mengatur toast dan suara **per Notification**. Target kompatibilitas: Frappe v15/v16; ERPNext opsional. Versi 0.1.1. Pengujian pada site Frappe nyata masih diperlukan sebelum produksi.
 
 ## Fitur
 
@@ -14,7 +14,7 @@ App Frappe untuk mengatur toast dan suara **per Notification**. Target kompatibi
 | Custom audio | Upload MP3/WAV/OGG publik, maksimal 2 MB |
 | Volume | 0–100% |
 
-Profil reusable, preview toast dan suara, mute per browser/pengguna, dukungan dark mode dan reduced motion, pause auto-dismiss saat hover/fokus, serta tombol membuka Notification Log. Teks notifikasi ditampilkan sebagai plain text untuk mencegah injeksi HTML. Maksimal lima toast per posisi; riwayat tetap tersimpan di notification bell bawaan.
+Profil reusable, preview toast dan suara, mute per browser/pengguna, dukungan dark mode dan reduced motion, pause auto-dismiss saat hover/fokus, serta klik toast/tombol untuk membuka record terkait (fallback ke Notification Log jika tidak ada referensi). Teks notifikasi ditampilkan sebagai plain text untuk mencegah injeksi HTML. Maksimal lima toast per posisi; riwayat tetap tersimpan di notification bell bawaan.
 
 ## Instalasi dari GitHub ke Frappe Cloud
 
@@ -66,7 +66,7 @@ Untuk Custom Sound: upload file **public**, simpan, lalu preview. File public da
 - Pekerjaan pembuatan log diantrekan setelah transaksi asal commit. Hook `Notification Log.after_insert` mengirim event realtime `notify_plus` **hanya ke for_user** dan setelah commit. Worker/Redis/realtime Frappe harus berfungsi.
 - Pengiriman memakai helper Notification Log bawaan sehingga pengaturan penerima/notifikasi Frappe tetap berlaku. Toast tidak mengirim ulang email atau membuat log kedua.
 - Toast dan audio tersedia di **Desk browser yang sedang terhubung**. Ini bukan push OS/mobile. Saat offline tidak ada replay toast/suara; lihat riwayat bell ketika kembali online. Setiap tab Desk yang terhubung dapat menampilkan dan membunyikan notifikasi; gunakan mute bila perlu.
-- Browser membutuhkan klik Enable sound atau Preview sebelum audio diizinkan. Preferensi mute tersimpan di browser; izin audio perlu diaktifkan lagi setelah reload. Tidak ada suara saat semua tab tertutup.
+- Browser membutuhkan klik Enable sound atau Preview sebelum audio diizinkan. Preferensi enabled/muted tersimpan di localStorage per pengguna dan disinkronkan antar tab. Setelah reload, app mencoba mengaktifkan audio otomatis; jika autoplay diblokir browser, klik atau tekan tombol keyboard di Desk akan mengaktifkannya tanpa perlu menekan Enable sound lagi. Status tombol tetap mengikuti preferensi tersimpan. Tidak ada suara saat semua tab tertutup.
 - Tampilan ini tidak mengganti `frappe.msgprint`, alert validasi, toast lain, atau suara bawaan dari app lain. Assignment/mention yang tidak berasal dari Notification terhubung tidak dikustomisasi.
 - Hanya System Manager mengelola profil. Membuka dokumen/log tetap mengikuti permission Frappe. Payload tidak membawa daftar penerima.
 - App memakai `override_doctype_class` untuk Notification; app lain yang juga mengoverride controller ini harus diperiksa untuk konflik. Isi payload core bisa berubah antar patch Frappe, sehingga jalankan checklist staging setelah upgrade.
@@ -80,6 +80,7 @@ Pemeriksaan tanpa bench:
 python3 -m unittest discover -s tests -v
 python3 -m compileall -q frappe_notify_plus
 node --check frappe_notify_plus/public/js/notify_plus.js
+node --test tests/test_frontend.cjs
 python3 -m pip install build
 python3 -m build
 ```
@@ -98,3 +99,10 @@ Checklist **site staging v15/v16** sebelum produksi:
 
 CI memeriksa validasi konfigurasi, integrasi via mock, syntax JS/Python dan build paket. CI ini tidak menjalankan server Frappe, database, Redis, atau browser; hasilnya bukan sertifikasi kompatibilitas site.
 # frappe-notify-plus
+
+## Update 0.1.1
+
+- Enable/mute/unmute disimpan per pengguna di localStorage (`notify-plus-sound:<user>`). Preferensi mute versi sebelumnya tetap dibaca. Perubahan disinkronkan ke tab lain pada origin dan pengguna yang sama.
+- Preferensi enabled dipulihkan saat reload. Jika browser menahan autoplay, interaksi biasa di Desk mencoba mengaktifkan audio kembali tanpa mengubah preferensi.
+- Klik badan toast atau Open document membuka `document_type` + `document_name` dari Notification Log; jika referensi tidak lengkap, fallback ke log. Tombol tutup tetap hanya menutup toast.
+- Setelah push ke GitHub, deploy update app di Frappe Cloud (termasuk assets), kemudian hard refresh satu kali agar JavaScript terbaru termuat. Uji enable → refresh, mute → refresh, unmute → refresh, serta klik toast dari Notification yang terhubung ke record.

@@ -15,11 +15,13 @@ def deliver(doc, method=None):
         )}
         payload.update({
             "id": doc.name,
+            "document_type": doc.get("document_type"),
+            "document_name": doc.get("document_name"),
             "title": strip_html(doc.get("title") or doc.get("subject") or "Notification")[:240],
             "message": strip_html(doc.get("description") or doc.get("email_content") or "")[:600],
         })
         # The existing Notification Log controls which user receives the event.
-        # Navigate to that log; document access remains enforced by Frappe.
+        # Record access remains enforced by Frappe when the recipient opens it.
         frappe.publish_realtime("notify_plus", payload, user=doc.for_user, after_commit=True)
     except Exception:
         # Presentation failure must not prevent saving a core notification.
