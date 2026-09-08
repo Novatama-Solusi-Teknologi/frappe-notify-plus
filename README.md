@@ -1,6 +1,6 @@
 # Notify Plus for Frappe / ERPNext
 
-App Frappe untuk mengatur toast dan suara **per Notification**. Target kompatibilitas: Frappe v15/v16; ERPNext opsional. Versi 0.1.1. Pengujian pada site Frappe nyata masih diperlukan sebelum produksi.
+App Frappe untuk mengatur toast dan suara **per Notification**. Target kompatibilitas: Frappe v15/v16; ERPNext opsional. Versi 0.1.2. Pengujian pada site Frappe nyata masih diperlukan sebelum produksi.
 
 ## Fitur
 
@@ -106,3 +106,11 @@ CI memeriksa validasi konfigurasi, integrasi via mock, syntax JS/Python dan buil
 - Preferensi enabled dipulihkan saat reload. Jika browser menahan autoplay, interaksi biasa di Desk mencoba mengaktifkan audio kembali tanpa mengubah preferensi.
 - Klik badan toast atau Open document membuka `document_type` + `document_name` dari Notification Log; jika referensi tidak lengkap, fallback ke log. Tombol tutup tetap hanya menutup toast.
 - Setelah push ke GitHub, deploy update app di Frappe Cloud (termasuk assets), kemudian hard refresh satu kali agar JavaScript terbaru termuat. Uji enable → refresh, mute → refresh, unmute → refresh, serta klik toast dari Notification yang terhubung ke record.
+
+## Update 0.1.2 — restore preferensi setelah reload
+
+Inisialisasi sekarang menunggu DOM ready atau event `app_ready`, lalu mengambil identitas dari `frappe.boot.user.name` dengan fallback ke session. Tidak membaca/menulis preferensi untuk user yang belum tersedia atau Guest. Ini mencegah key `undefined` dan perbedaan key akibat urutan startup Desk. URL JavaScript diberi versi untuk mengganti cache asset 0.1.1.
+
+Setelah deploy 0.1.2, reload Desk. Jika pilihan lama dahulu tersimpan dengan identitas yang belum tersedia, pilih Enable sound sekali lagi untuk menyimpannya pada key pengguna yang benar. Key ambigu tersebut tidak dipindahkan otomatis karena tidak bisa dipastikan pemiliknya. Reload berikutnya harus mempertahankan status. Jika browser menolak penyimpanan, app sekarang memberi pesan.
+
+Untuk memastikan asset terbaru termuat, jalankan `frappe.notify_plus.version` di browser console: hasilnya harus `0.1.2`. Jika masih versi lama atau undefined, pastikan deploy app selesai dan cache site/assets sudah diperbarui. Verifikasi preferensi memakai `localStorage.getItem("notify-plus-sound:" + frappe.boot.user.name)`; nilai yang diharapkan `enabled` atau `muted`.

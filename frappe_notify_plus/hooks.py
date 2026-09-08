@@ -4,7 +4,7 @@ app_publisher = "Notify Plus Contributors"
 app_description = "Custom notification toasts and sounds"
 app_email = ""
 app_license = "MIT"
-app_include_js = ["/assets/frappe_notify_plus/js/notify_plus.js"]
+app_include_js = ["/assets/frappe_notify_plus/js/notify_plus.js?v=0.1.2"]
 app_include_css = ["/assets/frappe_notify_plus/css/notify_plus.css"]
 doctype_js = {"Notification": "public/js/notification.js"}
 after_install = "frappe_notify_plus.install.setup"
